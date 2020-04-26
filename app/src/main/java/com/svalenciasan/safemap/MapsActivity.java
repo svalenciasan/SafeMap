@@ -1,6 +1,7 @@
 package com.svalenciasan.safemap;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -11,15 +12,33 @@ import android.location.Location;
 import android.os.Bundle;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MapsActivity extends AppCompatActivity
         implements
         GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
         OnMapReadyCallback,
+        GoogleMap.OnMarkerClickListener,
         ActivityCompat.OnRequestPermissionsResultCallback {
 
     /**
@@ -50,10 +69,89 @@ public class MapsActivity extends AppCompatActivity
     @Override
     public void onMapReady(GoogleMap map) {
         mMap = map;
-
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
         enableMyLocation();
+        //Test Code
+        /**
+        Marker crimeMarker = map.addMarker(new MarkerOptions()
+                .position(new LatLng(41.881832,-87.623177))
+                .title("primary_type"));
+        String description = "500 or less";
+        crimeMarker.setTag(description);
+        // Set a listener for marker click.
+        mMap.setOnMarkerClickListener(this);
+         */
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String baseUrl = "https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date between";
+        String url ="https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date%20between%20%272020-03-18T00:00:00%27%20and%20%272020-03-25T00:00:00%27";
+
+        // Request a string response from the provided URL.
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        JSONArray obj = response;
+                        JSONObject first = null;
+                        try {
+                            first = (JSONObject) obj.get(0);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        String crime = null;
+                        try {
+                            crime = first.getString("primary_type");
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        System.out.println(crime);
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                System.out.println(error.toString());
+            }
+        });
+        request.setRetryPolicy(new RetryPolicy() {
+            @Override
+            public int getCurrentTimeout() {
+                return 50000;
+            }
+            @Override
+            public int getCurrentRetryCount() {
+                return 50000;
+            }
+            @Override
+            public void retry(VolleyError error) throws VolleyError {
+
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(request);
+
+    }
+
+    /** Called when the user clicks a marker. */
+    @Override
+    public boolean onMarkerClick(final Marker marker) {
+
+        // Retrieve the data from the marker.
+        String description = (String) marker.getTag();
+
+        // Check if a click count was set, then display the click count.
+        if (description != null) {
+            AlertDialog.Builder popup = new AlertDialog.Builder(this);
+            popup.setMessage(description);
+            popup.setNegativeButton("Ok", null);
+            popup.create().show();
+        }
+
+        // Return false to indicate that we have not consumed the event and that we wish
+        // for the default behavior to occur (which is for the camera to move such that the
+        // marker is centered and for the marker's info window to open, if it has one).
+        return false;
     }
 
     /**
@@ -76,7 +174,7 @@ public class MapsActivity extends AppCompatActivity
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Current Location", Toast.LENGTH_SHORT).show();
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
         return false;
