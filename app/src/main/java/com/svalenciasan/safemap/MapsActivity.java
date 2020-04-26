@@ -31,6 +31,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 public class MapsActivity extends AppCompatActivity
@@ -82,11 +83,18 @@ public class MapsActivity extends AppCompatActivity
         // Set a listener for marker click.
         mMap.setOnMarkerClickListener(this);
          */
+        //Calendar Stuff
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String currDate = dateFormat.format(calendar.getTime());
+        SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+        String currTime = hourFormat.format(calendar.getTime());
+        String prevWeekDate = getCalculatedDate("yyyy-MM-dd", -30);
+        String url = "https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date between";
+        url += " " + "\'" + prevWeekDate + "T00:00:00\' and \'" + currDate + "T" + currTime + "\'";
+
         // Instantiate the RequestQueue.
         RequestQueue queue = Volley.newRequestQueue(this);
-        String baseUrl = "https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date between";
-        String url ="https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date%20between%20%272020-03-18T00:00:00%27%20and%20%272020-03-25T00:00:00%27";
-
         // Request a string response from the provided URL.
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONArray>() {
@@ -222,5 +230,18 @@ public class MapsActivity extends AppCompatActivity
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
-
+    /**
+     * Pass your date format and no of days for minus from current
+     * If you want to get previous date then pass days with minus sign
+     * else you can pass as it is for next date
+     * @param dateFormat
+     * @param days
+     * @return Calculated Date
+     */
+    public static String getCalculatedDate(String dateFormat, int days) {
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat s = new SimpleDateFormat(dateFormat);
+        cal.add(Calendar.DAY_OF_YEAR, days);
+        return s.format(new Date(cal.getTimeInMillis()));
+    }
 }
