@@ -68,7 +68,7 @@ public class MapsActivity extends AppCompatActivity
     }
 
     @Override
-    public void onMapReady(GoogleMap map) {
+    public void onMapReady(final GoogleMap map) {
         mMap = map;
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
@@ -100,20 +100,42 @@ public class MapsActivity extends AppCompatActivity
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
-                        JSONArray obj = response;
-                        JSONObject first = null;
-                        try {
-                            first = (JSONObject) obj.get(0);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                        for (int i = 0; i < response.length(); i++) {
+                            JSONObject crime = null;
+                            try {
+                                crime = (JSONObject) response.get(i);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            double latitude = 0;
+                            try {
+                                latitude = crime.getDouble("latitude");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            double longitude = 0;
+                            try {
+                                longitude = crime.getDouble("longitude");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            String description = null;
+                            try {
+                                description = crime.getString("description");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            String primaryType = null;
+                            try {
+                                primaryType = crime.getString("primary_type");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            Marker crimeMarker = map.addMarker(new MarkerOptions()
+                                    .position(new LatLng(latitude,longitude))
+                                    .title(primaryType));
+                            crimeMarker.setTag(description);
                         }
-                        String crime = null;
-                        try {
-                            crime = first.getString("primary_type");
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        System.out.println(crime);
                     }
                 }, new Response.ErrorListener() {
             @Override
@@ -138,7 +160,7 @@ public class MapsActivity extends AppCompatActivity
 
         // Add the request to the RequestQueue.
         queue.add(request);
-
+        mMap.setOnMarkerClickListener(this);
     }
 
     /** Called when the user clicks a marker. */
