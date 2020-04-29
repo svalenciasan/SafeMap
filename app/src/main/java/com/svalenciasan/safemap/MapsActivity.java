@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 
 public class MapsActivity extends AppCompatActivity
         implements
@@ -54,7 +55,9 @@ public class MapsActivity extends AppCompatActivity
      * {@link #onRequestPermissionsResult(int, String[], int[])}.
      */
     private boolean mPermissionDenied = false;
-
+    /**
+     * google map
+     */
     private GoogleMap mMap;
 
     @Override
@@ -67,22 +70,146 @@ public class MapsActivity extends AppCompatActivity
         mapFragment.getMapAsync(this);
     }
 
+    /**
+     * Creates the map and markers.
+     * @param map
+     */
     @Override
     public void onMapReady(final GoogleMap map) {
         mMap = map;
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
         enableMyLocation();
-        //Test Code
-        /**
-        Marker crimeMarker = map.addMarker(new MarkerOptions()
-                .position(new LatLng(41.881832,-87.623177))
-                .title("primary_type"));
-        String description = "500 or less";
-        crimeMarker.setTag(description);
-        // Set a listener for marker click.
+        this.createMarkers(mMap);
         mMap.setOnMarkerClickListener(this);
-         */
+    }
+
+    /** Called when the user clicks a marker. */
+    @Override
+    public boolean onMarkerClick(final Marker marker) {
+
+        // Retrieve the data from the marker.
+        String description = (String) marker.getTag();
+
+        // Check if a click count was set, then display the click count.
+        if (description != null) {
+            AlertDialog.Builder popup = new AlertDialog.Builder(this);
+            popup.setMessage(description);
+            popup.setNegativeButton("Ok", null);
+            popup.create().show();
+        }
+
+        // Return false to indicate that we have not consumed the event and that we wish
+        // for the default behavior to occur (which is for the camera to move such that the
+        // marker is centered and for the marker's info window to open, if it has one).
+        return false;
+    }
+
+    /**
+     * Enables the My Location layer if the fine location permission has been granted.
+     */
+    private void enableMyLocation() {
+        // [START maps_check_location_permission]
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            if (mMap != null) {
+                mMap.setMyLocationEnabled(true);
+            }
+        } else {
+            // Permission to access the location is missing. Show rationale and request permission
+            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.ACCESS_FINE_LOCATION, true);
+        }
+        // [END maps_check_location_permission]
+    }
+
+    /**
+     * The button that centers the map on the location of the user.
+     * @return
+     */
+    @Override
+    public boolean onMyLocationButtonClick() {
+        Toast.makeText(this, "Current Location", Toast.LENGTH_SHORT).show();
+        // Return false so that we don't consume the event and the default behavior still occurs
+        // (the camera animates to the user's current position).
+        return false;
+    }
+
+    /**
+     * Button that centers the map on the location of the user.
+     * @param location
+     */
+    @Override
+    public void onMyLocationClick(@NonNull Location location) {
+        Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
+    }
+
+    /**
+     * Handles request for permission to use location
+     * @param requestCode
+     * @param permissions
+     * @param grantResults
+     */
+    // [START maps_check_location_permission_result]
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
+            return;
+        }
+
+        if (PermissionUtils.isPermissionGranted(permissions, grantResults, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            // Enable the my location layer if the permission has been granted.
+            enableMyLocation();
+        } else {
+            // Permission was denied. Display an error message
+            // [START_EXCLUDE]
+            // Display the missing permission error dialog when the fragments resume.
+            mPermissionDenied = true;
+            // [END_EXCLUDE]
+        }
+    }
+
+    /**
+     * Permission not granted to use location
+     */
+    // [END maps_check_location_permission_result]
+    @Override
+    protected void onResumeFragments() {
+        super.onResumeFragments();
+        if (mPermissionDenied) {
+            // Permission was not granted, display error dialog.
+            showMissingPermissionError();
+            mPermissionDenied = false;
+        }
+    }
+
+    /**
+     * Displays a dialog with error message explaining that the location permission is missing.
+     */
+    private void showMissingPermissionError() {
+        PermissionUtils.PermissionDeniedDialog
+                .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+    /**
+     * Pass your date format and no of days for minus from current
+     * If you want to get previous date then pass days with minus sign
+     * else you can pass as it is for next date
+     * @param dateFormat
+     * @param days
+     * @return Calculated Date
+     */
+    public static String getCalculatedDate(String dateFormat, int days) {
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat s = new SimpleDateFormat(dateFormat);
+        cal.add(Calendar.DAY_OF_YEAR, days);
+        return s.format(new Date(cal.getTimeInMillis()));
+    }
+
+    /**
+     * Creates Markers on the map, default
+     * @param map
+     */
+    private void createMarkers(final GoogleMap map){
         //Calendar Stuff
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -160,110 +287,5 @@ public class MapsActivity extends AppCompatActivity
 
         // Add the request to the RequestQueue.
         queue.add(request);
-        mMap.setOnMarkerClickListener(this);
-    }
-
-    /** Called when the user clicks a marker. */
-    @Override
-    public boolean onMarkerClick(final Marker marker) {
-
-        // Retrieve the data from the marker.
-        String description = (String) marker.getTag();
-
-        // Check if a click count was set, then display the click count.
-        if (description != null) {
-            AlertDialog.Builder popup = new AlertDialog.Builder(this);
-            popup.setMessage(description);
-            popup.setNegativeButton("Ok", null);
-            popup.create().show();
-        }
-
-        // Return false to indicate that we have not consumed the event and that we wish
-        // for the default behavior to occur (which is for the camera to move such that the
-        // marker is centered and for the marker's info window to open, if it has one).
-        return false;
-    }
-
-    /**
-     * Enables the My Location layer if the fine location permission has been granted.
-     */
-    private void enableMyLocation() {
-        // [START maps_check_location_permission]
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            if (mMap != null) {
-                mMap.setMyLocationEnabled(true);
-            }
-        } else {
-            // Permission to access the location is missing. Show rationale and request permission
-            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
-        }
-        // [END maps_check_location_permission]
-    }
-
-    @Override
-    public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "Current Location", Toast.LENGTH_SHORT).show();
-        // Return false so that we don't consume the event and the default behavior still occurs
-        // (the camera animates to the user's current position).
-        return false;
-    }
-
-    @Override
-    public void onMyLocationClick(@NonNull Location location) {
-        Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
-    }
-
-    // [START maps_check_location_permission_result]
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
-            return;
-        }
-
-        if (PermissionUtils.isPermissionGranted(permissions, grantResults, Manifest.permission.ACCESS_FINE_LOCATION)) {
-            // Enable the my location layer if the permission has been granted.
-            enableMyLocation();
-        } else {
-            // Permission was denied. Display an error message
-            // [START_EXCLUDE]
-            // Display the missing permission error dialog when the fragments resume.
-            mPermissionDenied = true;
-            // [END_EXCLUDE]
-        }
-    }
-    // [END maps_check_location_permission_result]
-
-    @Override
-    protected void onResumeFragments() {
-        super.onResumeFragments();
-        if (mPermissionDenied) {
-            // Permission was not granted, display error dialog.
-            showMissingPermissionError();
-            mPermissionDenied = false;
-        }
-    }
-
-    /**
-     * Displays a dialog with error message explaining that the location permission is missing.
-     */
-    private void showMissingPermissionError() {
-        PermissionUtils.PermissionDeniedDialog
-                .newInstance(true).show(getSupportFragmentManager(), "dialog");
-    }
-    /**
-     * Pass your date format and no of days for minus from current
-     * If you want to get previous date then pass days with minus sign
-     * else you can pass as it is for next date
-     * @param dateFormat
-     * @param days
-     * @return Calculated Date
-     */
-    public static String getCalculatedDate(String dateFormat, int days) {
-        Calendar cal = Calendar.getInstance();
-        SimpleDateFormat s = new SimpleDateFormat(dateFormat);
-        cal.add(Calendar.DAY_OF_YEAR, days);
-        return s.format(new Date(cal.getTimeInMillis()));
     }
 }
