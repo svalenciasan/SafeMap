@@ -69,6 +69,10 @@ public class MapsActivity extends AppCompatActivity
      */
     private GoogleMap mMap;
     /**
+     * mapFragment
+     */
+    SupportMapFragment mapFragment;
+    /**
      * Clustering Manager
      */
     private ClusterManager<MyItem> mClusterManager;
@@ -82,8 +86,7 @@ public class MapsActivity extends AppCompatActivity
         Bundle bundle = getIntent().getExtras();
         type = bundle.getString("type");
 
-         SupportMapFragment mapFragment =
-         (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
          mapFragment.getMapAsync(this);
     }
 
@@ -97,15 +100,101 @@ public class MapsActivity extends AppCompatActivity
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
         enableMyLocation();
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.881832,-87.623177), 10.0f));
         if (type.equals("cluster")) {
-            this.createMarkers(mMap);
-            mMap.setOnMarkerClickListener(this);
+            setupCluster();
+            mMap.setOnCameraIdleListener(mClusterManager);
+            mMap.setOnMarkerClickListener(mClusterManager);
         } else {
-            setUpHeat();
+            setupHeat();
         }
     }
 
-    public void setUpHeat() {
+    private void setupCluster() {
+        mClusterManager = new ClusterManager<>(this, mMap);
+        final List<MyItem> list = new ArrayList<>();
+        //Calendar Stuff
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String currDate = dateFormat.format(calendar.getTime());
+        SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+        String currTime = hourFormat.format(calendar.getTime());
+        String prevWeekDate = getCalculatedDate("yyyy-MM-dd", -30);
+        String url = "https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date between";
+        url += " " + "\'" + prevWeekDate + "T00:00:00\' and \'" + currDate + "T" + currTime + "\'";
+
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        // Request a string response from the provided URL.
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        for (int i = 0; i < response.length(); i++) {
+                            JSONObject crime = null;
+                            try {
+                                crime = (JSONObject) response.get(i);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            double latitude = 0;
+                            try {
+                                latitude = crime.getDouble("latitude");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            double longitude = 0;
+                            try {
+                                longitude = crime.getDouble("longitude");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            String description = null;
+                            try {
+                                description = crime.getString("description");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            String primaryType = null;
+                            try {
+                                primaryType = crime.getString("primary_type");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            list.add(new MyItem(latitude, longitude, primaryType, description));
+                        }
+                        mClusterManager.addItems(list);
+                        mClusterManager.cluster();
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                System.out.println(error.toString());
+            }
+        });
+        request.setRetryPolicy(new RetryPolicy() {
+            @Override
+            public int getCurrentTimeout() {
+                return 50000;
+            }
+            @Override
+            public int getCurrentRetryCount() {
+                return 50000;
+            }
+            @Override
+            public void retry(VolleyError error) throws VolleyError {
+
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(request);
+    }
+
+    /**
+     * Heat Map Code
+     */
+    public void setupHeat() {
         final List<WeightedLatLng> list = new ArrayList<>();
         // Get the data: latitude/longitude positions of crimes.
         Calendar calendar = Calendar.getInstance();
@@ -315,6 +404,7 @@ public class MapsActivity extends AppCompatActivity
      * Creates Markers on the map, default
      * @param map
      */
+    /**
     private void createMarkers(final GoogleMap map){
         //Calendar Stuff
         Calendar calendar = Calendar.getInstance();
@@ -394,4 +484,5 @@ public class MapsActivity extends AppCompatActivity
         // Add the request to the RequestQueue.
         queue.add(request);
     }
+     */
 }

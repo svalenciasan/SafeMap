@@ -8,7 +8,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="#8D8A98">
 
         <Button
             android:id="@+id/heat"
@@ -24,15 +25,17 @@
 
         <TextView
             android:id="@+id/Welcome"
-            android:layout_width="146dp"
-            android:layout_height="41dp"
-            android:text="Welcome to Safe Map"
+            android:layout_width="256dp"
+            android:layout_height="87dp"
+            android:text="Welcome to Safe Map!"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:textSize="25sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.497"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.227" />
+            app:layout_constraintVertical_bias="0.085" />
 
         <Button
             android:id="@+id/cluster"

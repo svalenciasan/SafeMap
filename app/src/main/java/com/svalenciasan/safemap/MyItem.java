@@ -7,17 +7,13 @@ public class MyItem implements ClusterItem {
     private final LatLng mPosition;
     private final String mTitle;
     private final String mSnippet;
-
-    public MyItem(double lat, double lng) {
-        mPosition = new LatLng(lat, lng);
-        mTitle = "";
-        mSnippet = "";
-    }
+    private final String mUrl;
 
     public MyItem(double lat, double lng, String title, String snippet) {
         mPosition = new LatLng(lat, lng);
         mTitle = title;
         mSnippet = snippet;
+        mUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Question_mark_alternate.svg/1200px-Question_mark_alternate.svg.png";
     }
 
     @Override
@@ -27,18 +23,15 @@ public class MyItem implements ClusterItem {
 
     @Override
     public String getTitle() {
-        if (mTitle == null) {
-            return "";
-        }
         return mTitle;
     }
 
     @Override
     public String getSnippet() {
-        if (mSnippet == null) {
-            return "";
-        }
         return mSnippet;
     }
 
+    public String getUrl() {
+        return mUrl;
+    }
 }
