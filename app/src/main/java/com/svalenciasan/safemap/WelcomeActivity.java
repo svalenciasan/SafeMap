@@ -10,12 +10,20 @@ public class WelcomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        final Intent intent = new Intent(WelcomeActivity.this, MapsActivity.class);
         setContentView(R.layout.activity_welcome);
-        findViewById(R.id.enter).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.heat).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View unused) {
-                WelcomeActivity.this.startActivity(
-                        new Intent(WelcomeActivity.this, MapsActivity.class));
+                intent.putExtra("type", "heat");
+                startActivity(intent);
+            }
+        });
+        findViewById(R.id.cluster).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View unused) {
+                intent.putExtra("type", "cluster");
+                startActivity(intent);
             }
         });
     }

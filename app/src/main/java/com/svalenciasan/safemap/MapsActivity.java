@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -19,20 +20,28 @@ import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.heatmaps.Gradient;
+import com.google.maps.android.heatmaps.HeatmapTileProvider;
+import com.google.maps.android.heatmaps.WeightedLatLng;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 public class MapsActivity extends AppCompatActivity
@@ -59,15 +68,23 @@ public class MapsActivity extends AppCompatActivity
      * google map
      */
     private GoogleMap mMap;
+    /**
+     * Clustering Manager
+     */
+    private ClusterManager<MyItem> mClusterManager;
+
+    String type;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        Bundle bundle = getIntent().getExtras();
+        type = bundle.getString("type");
 
-        SupportMapFragment mapFragment =
-                (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+         SupportMapFragment mapFragment =
+         (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+         mapFragment.getMapAsync(this);
     }
 
     /**
@@ -80,8 +97,97 @@ public class MapsActivity extends AppCompatActivity
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
         enableMyLocation();
-        this.createMarkers(mMap);
-        mMap.setOnMarkerClickListener(this);
+        if (type.equals("cluster")) {
+            this.createMarkers(mMap);
+            mMap.setOnMarkerClickListener(this);
+        } else {
+            setUpHeat();
+        }
+    }
+
+    public void setUpHeat() {
+        final List<WeightedLatLng> list = new ArrayList<>();
+        // Get the data: latitude/longitude positions of crimes.
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String currDate = dateFormat.format(calendar.getTime());
+        SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm:ss");
+        String currTime = hourFormat.format(calendar.getTime());
+        String prevWeekDate = getCalculatedDate("yyyy-MM-dd", -30);
+        String url = "https://data.cityofchicago.org/resource/ijzp-q8t2.json?$where=date between";
+        url += " " + "\'" + prevWeekDate + "T00:00:00\' and \'" + currDate + "T" + currTime + "\'";
+
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        // Request a string response from the provided URL.
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        for (int i = 0; i < response.length(); i++) {
+                            JSONObject crime = null;
+                            try {
+                                crime = (JSONObject) response.get(i);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            double latitude = 0;
+                            try {
+                                latitude = crime.getDouble("latitude");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            double longitude = 0;
+                            try {
+                                longitude = crime.getDouble("longitude");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            LatLng location = new LatLng(latitude, longitude);
+                            WeightedLatLng weight = new WeightedLatLng(location, 20);
+                            list.add(weight);
+                        }
+                        // Create the gradient.
+                        int[] colors = {
+                                Color.rgb(100, 0, 255),
+                                Color.rgb(255, 0, 0)
+                        };
+
+                        float[] startPoints = {
+                                0.2f, 1f
+                        };
+
+                        Gradient gradient = new Gradient(colors, startPoints);
+                        HeatmapTileProvider mProvider = new HeatmapTileProvider.Builder()
+                                .weightedData(list)
+                                .radius(25)
+                                .opacity(1)
+                                .gradient(gradient)
+                                .build();
+                        // Add a tile overlay to the map, using the heat map tile provider.
+                        mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                System.out.println(error.toString());
+            }
+        });
+        request.setRetryPolicy(new RetryPolicy() {
+            @Override
+            public int getCurrentTimeout() {
+                return 50000;
+            }
+            @Override
+            public int getCurrentRetryCount() {
+                return 50000;
+            }
+            @Override
+            public void retry(VolleyError error) throws VolleyError {
+
+            }
+        });
+        queue.add(request);
     }
 
     /** Called when the user clicks a marker. */
