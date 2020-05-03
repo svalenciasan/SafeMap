@@ -7,6 +7,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -163,7 +164,10 @@ public class MapsActivity extends AppCompatActivity
                             }
                             list.add(new MyItem(latitude, longitude, primaryType, description));
                         }
-                        mClusterManager.addItems(list);
+                        for (MyItem item: list) {
+                            mClusterManager.addItem(item);
+                        }
+                        mClusterManager.setRenderer(new IconRenderer(MapsActivity.this, mMap, mClusterManager));
                         mClusterManager.cluster();
                     }
                 }, new Response.ErrorListener() {
