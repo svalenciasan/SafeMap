@@ -114,7 +114,7 @@ public class MapsActivity extends AppCompatActivity
     private void setupCluster() {
         mClusterManager = new ClusterManager<>(this, mMap);
         final List<MyItem> list = new ArrayList<>();
-        //Calendar Stuff
+        //Calendar Stuff to account for changes in the month
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         String currDate = dateFormat.format(calendar.getTime());
